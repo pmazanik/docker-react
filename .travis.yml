@@ -4,8 +4,8 @@ services:
   - docker
 
 before_install:
-  - docker build -t pmazanik/docker-react -f Dockerfile.dev . 
-  
+  - docker build -t pmazanik/docker-react -f Dockerfile.dev .
+
 script:
   - docker run -e CI=true pmazanik/docker-react npm run test
 
@@ -14,9 +14,9 @@ deploy:
   region: "eu-central-1"
   app: "docker-react"
   env: "Dockerreact-env"
-  bucket_name: "elasticbeanstalk-eu-central-1-724755082809"
+  bucket_name: "elasticbeanstalk-eu-central-1-869697816139"
   bucket_path: "docker-react"
   on:
     branch: main
   access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY  
+  secret_access_key: $AWS_SECRET_KEY

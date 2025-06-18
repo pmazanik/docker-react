@@ -1,0 +1,56 @@
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: cimg/base:stable # CircleCI base image
+    steps:
+      - checkout
+
+      - setup_remote_docker
+
+      - run:
+          name: Build Docker image
+          command: docker build -t pmazanik/docker-react -f Dockerfile.dev .
+
+      - run:
+          name: Run tests
+          command: docker run -e CI=true pmazanik/docker-react npm run test
+
+  deploy:
+    docker:
+      - image: cimg/python:3.10 # Includes pip & Python AWS tools
+    steps:
+      - checkout
+
+      - run:
+          name: Install AWS CLI
+          command: |
+            python -m pip install --upgrade pip
+            pip install awscli
+
+      - run:
+          name: Deploy to Elastic Beanstalk
+          command: |
+            zip -r docker-react.zip . -x '*.git*'
+            aws configure set aws_access_key_id "$AWS_ACCESS_KEY"
+            aws configure set aws_secret_access_key "$AWS_SECRET_KEY"
+            aws configure set default.region "eu-central-1"
+            aws s3 cp docker-react.zip s3://elasticbeanstalk-eu-central-1-869697816139/docker-react/docker-react.zip
+            aws elasticbeanstalk create-application-version --application-name docker-react \
+              --version-label "v-${CIRCLE_SHA1}" \
+              --source-bundle S3Bucket="elasticbeanstalk-eu-central-1-869697816139",S3Key="docker-react/docker-react.zip"
+            aws elasticbeanstalk update-environment --environment-name Docker-react-env \
+              --version-label "v-${CIRCLE_SHA1}"
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
